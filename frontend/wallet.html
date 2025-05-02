@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wallet</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+    }
+
+    .wallet-container {
+      max-width: 500px;
+      margin: 50px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      color: white;
+      background-color: #007bff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .balance-display {
+      text-align: center;
+      margin: 20px 0;
+      font-size: 20px;
+      color: #007bff;
+    }
+
+    .error-message {
+      color: red;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wallet-container">
+    <h1>Your Wallet</h1>
+    <div class="balance-display" id="balance-display">Balance: $0.00</div>
+    <div id="error-message" class="error-message"></div>
+
+    <div class="form-group">
+      <label for="amount">Amount</label>
+      <input type="number" id="amount" placeholder="Enter amount" min="1">
+    </div>
+    <button id="add-balance">Add Balance</button>
+    <button id="subtract-balance" style="margin-top: 10px;">Subtract Balance</button>
+    <button style="margin-top: 10px;"><a href='/Watchlist' text-color="white"> Watchlist</a></button>
+  </div>
+
+  <script>
+    const balanceDisplay = document.getElementById('balance-display');
+    const errorMessage = document.getElementById('error-message');
+    const amountInput = document.getElementById('amount');
+
+    // Fetch wallet balance
+    const fetchBalance = async () => {
+      try {
+        const response = await fetch('/api/wallet/balance', { method: 'GET', credentials: 'include' });
+        if (!response.ok) throw new Error('Failed to fetch balance');
+        const data = await response.json();
+        balanceDisplay.textContent = `Balance: Rs. ${data.walletBalance.toFixed(2)}`;
+      } catch (error) {
+        console.error(error);
+        errorMessage.textContent = 'Error fetching balance';
+      }
+    };
+
+    // Add balance
+    const addBalance = async () => {
+      const amount = parseFloat(amountInput.value);
+      if (isNaN(amount) || amount <= 0) {
+        errorMessage.textContent = 'Invalid amount';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/wallet/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ amount }),
+        });
+        if (!response.ok) throw new Error('Failed to add balance');
+        await fetchBalance();
+        amountInput.value = '';
+        errorMessage.textContent = '';
+      } catch (error) {
+        console.error(error);
+        errorMessage.textContent = 'Error adding balance';
+      }
+    };
+
+    // Subtract balance
+    const subtractBalance = async () => {
+      const amount = parseFloat(amountInput.value);
+      if (isNaN(amount) || amount <= 0) {
+        errorMessage.textContent = 'Invalid amount';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/wallet/subtract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ amount }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to subtract balance');
+        }
+        await fetchBalance();
+        amountInput.value = '';
+        errorMessage.textContent = '';
+      } catch (error) {
+        console.error(error);
+        errorMessage.textContent = error.message;
+      }
+    };
+
+    // Event listeners
+    document.getElementById('add-balance').addEventListener('click', addBalance);
+    document.getElementById('subtract-balance').addEventListener('click', subtractBalance);
+
+    // Fetch balance on page load
+    fetchBalance();
+  </script>
+</body>
+</html>
